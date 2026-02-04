@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;500;700&display=swap" rel="stylesheet">
+  
+  <style>
+    body { background-color: #0a192f; color: #e6f1ff; font-family: 'Noto Sans TC', sans-serif; padding: 15px; margin: 0; }
+    .dashboard-container { width: 100%; max-width: 1100px; background: #112240; border-radius: 16px; padding: 25px; margin: 10px auto; border: 1px solid #233554; box-shadow: 0 10px 40px rgba(0,0,0,0.6); }
+    
+    .header { text-align: center; border-bottom: 2px solid #64ffda; padding-bottom: 20px; margin-bottom: 25px; }
+    h1 { color: #64ffda; font-size: 26px; margin: 0; }
+    
+    .control-panel { display: flex; justify-content: center; gap: 15px; margin-top: 15px; align-items: center; }
+    .input-field { background: #0a192f; border: 1px solid #64ffda; color: #64ffda; padding: 10px; border-radius: 6px; width: 160px; text-align: right; font-size: 18px; font-weight: bold; }
+    .btn-update { background: #118ab2; color: white; border: none; padding: 10px 25px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 16px; }
+
+    /* 核心數據看板：總額與缺口數據恢復 */
+    .summary-grid { display: table; width: 100%; border-spacing: 15px 0; margin-bottom: 30px; table-layout: fixed; }
+    .summary-item { display: table-cell; background: rgba(10, 25, 47, 0.6); padding: 20px; border-radius: 12px; text-align: center; border: 1px solid #233554; }
+    .sum-label { display: block; font-size: 14px; color: #8892b0; margin-bottom: 8px; }
+    .sum-value { display: block; font-size: 24px; font-weight: bold; color: #64ffda; font-family: monospace; }
+    .gap-danger { color: #ef476f !important; }
+
+    /* 左右圖表：物理隔離 50/50 分離 */
+    .main-layout { display: table; width: 100%; border-spacing: 20px 0; table-layout: fixed; }
+    .layout-cell { display: table-cell; background: #0f1e36; border-radius: 14px; padding: 20px; border: 1px solid #233554; vertical-align: top; width: 50%; }
+    .chart-label { color: #ffffff; font-weight: bold; text-align: center; margin-bottom: 20px; font-size: 18px; border-left: 5px solid #64ffda; padding-left: 10px; }
+
+    /* 得分指標：強制一列一列，決不接續 */
+    .m-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    .m-table tr { border-bottom: 1px solid #233554; }
+    .m-table td { padding: 15px 5px; font-size: 15px; }
+    .m-name { color: #8892b0; text-align: left; }
+    .m-val { color: #64ffda; font-weight: bold; text-align: right; }
+    .ach-row { background: rgba(212, 175, 55, 0.2); border-left: 4px solid #ffd166; }
+    .ach-row td { color: #ffd166 !important; font-size: 18px !important; }
+
+    /* 清單隔離：強制每一列獨立排好 */
+    .policy-section { width: 100%; margin-top: 30px; background: #0a192f; border: 1px solid #233554; border-radius: 12px; padding: 25px; box-sizing: border-box; }
+    .p-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+    .p-table tr { border-bottom: 1px solid #233554; }
+    .p-table td { padding: 18px 10px; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .p-dot { width: 14px; height: 14px; border-radius: 4px; display: inline-block; margin-right: 15px; vertical-align: middle; }
+    .p-money { text-align: right; font-weight: bold; color: #64ffda; font-family: monospace; font-size: 20px; }
+  </style>
+</head>
+<body>
+
+<div class="dashboard-container">
+  <div class="header">
+    <h1 id="mainTitle">林佑恩 退休精算診斷系統</h1>
+    <div class="control-panel">
+      <span style="color:#ffffff">退休期許值 (TWD):</span>
+      <input type="number" id="targetGoal" class="input-field" value="13000000">
+      <button class="btn-update" onclick="updateDashboard()">重新計算分析</button>
+    </div>
+  </div>
+
+  <div class="summary-grid">
+    <div class="summary-item">
+      <span class="sum-label">65 歲預估資產總額</span>
+      <span id="stat-total" class="sum-value">$0</span>
+    </div>
+    <div class="summary-item">
+      <span class="sum-label">資金缺口 / 餘裕</span>
+      <span id="stat-gap" class="sum-value">$0</span>
+    </div>
+  </div>
+
+  <div class="main-layout">
+    <div class="layout-cell">
+      <div class="chart-label">資產累積成長趨勢</div>
+      <div style="height: 380px;"><canvas id="assetChart"></canvas></div>
+    </div>
+    <div class="layout-cell">
+      <div class="chart-label">體質評分與 65 歲達成率</div>
+      <div style="height: 280px;"><canvas id="radarChart"></canvas></div>
+      <table class="m-table" id="metric-table-body"></table>
+    </div>
+  </div>
+  
+  <div class="policy-section">
+    <div style="color:#64ffda; font-weight:bold; margin-bottom:20px; border-left:5px solid #64ffda; padding-left:12px; font-size:18px;">
+      個人保單 65 歲預估價值明細
+    </div>
+    <table class="p-table" id="policy-list-body"></table>
+  </div>
+</div>
+
+<script>
+  let globalData = null;
+  let assetChart = null;
+  let radarChartObj = null;
+  const COLORS = ['#64ffda', '#118ab2', '#ffd166', '#ef476f', '#06d6a0', '#7209b7'];
+
+  window.onload = function() {
+    google.script.run.withSuccessHandler(data => { globalData = data; renderAll(data); }).getPortfolioData();
+  };
+
+  function updateDashboard() { if(globalData) renderAll(globalData); }
+
+  function renderAll(data) {
+    if(!data || data.error) { alert(data.error); return; }
+    const target = Number(document.getElementById('targetGoal').value) || 1;
+    document.getElementById('mainTitle').innerText = `${data.clientName} (現年 ${data.currentAge} 歲) 精算診斷`;
+    
+    let total65 = 0;
+    const yRetire = data.yearsToRetire;
+
+    data.policies.forEach((p, idx) => {
+      let v65 = 0;
+      if (yRetire <= 1) v65 = p.values[0];
+      else if (yRetire <= 10) v65 = p.values[0] + (p.values[1]-p.values[0])*((yRetire-1)/9);
+      else {
+        let bi = Math.min(4, Math.floor(yRetire/10));
+        let r = (yRetire % 10) / 10;
+        v65 = p.values[bi] + (p.values[bi+1]-p.values[bi]) * r;
+      }
+      p._v65 = v65 * (p.currency === 'USD' ? 30 : 1);
+      p._color = COLORS[idx % COLORS.length];
+      total65 += p._at65 = p._v65;
+    });
+
+    // 數據看板更新
+    const gap = total65 - target;
+    document.getElementById('stat-total').innerText = `$${Math.round(total65).toLocaleString()}`;
+    const gapEl = document.getElementById('stat-gap');
+    gapEl.innerText = (gap >= 0 ? '+' : '') + `$${Math.round(gap).toLocaleString()}`;
+    gapEl.className = 'sum-value ' + (gap < 0 ? 'gap-danger' : '');
+
+    // 左圖趨勢
+    if (assetChart) assetChart.destroy();
+    let cumulative = new Array(7).fill(0);
+    let ds = data.policies.map((p, i) => {
+      let twd = [0, ...p.values].map(v => v * (p.currency==='USD'?30:1));
+      let lyr = twd.map((v, idx) => { cumulative[idx] += v; return cumulative[idx]; });
+      return { label: p.name, data: lyr, fill: i===0?'origin':'-1', backgroundColor: p._color+'AA', borderColor: p._color, tension:0.3, pointRadius:0 };
+    });
+    ds.push({ label: '目標紅線', data: Array(7).fill(target), borderColor: '#ef476f', borderDash: [10, 5], fill: false, borderWidth: 3 });
+
+    assetChart = new Chart(document.getElementById('assetChart'), {
+      type: 'line', data: { labels: ['0','10','20','30','40','50','60'], datasets: ds },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { annotation: { annotations: { line1: { type:'line', xMin: yRetire/10, xMax: yRetire/10, borderColor:'#fff', borderWidth:3, borderDash:[6,6], label:{display:true, content:'65歲退休'} } } }, legend: {labels:{color:'#fff'}} }, scales: { y:{grid:{color:'#233554'}, ticks:{color:'#fff'}}, x:{grid:{display:false}, ticks:{color:'#fff'}} } }
+    });
+
+    // 右圖雷達 & 指標
+    if (radarChartObj) radarChartObj.destroy();
+    let scores = [0,0,0,0,0];
+    data.policies.forEach(p => {
+      scores[0]=Math.max(scores[0],p.scores.liquidity);
+      scores[1]=Math.max(scores[1],p.scores.safety);
+      scores[2]=Math.max(scores[2],p.scores.yield);
+      scores[3]=Math.max(scores[3],p.scores.protection);
+    });
+    let achRate = (total65 / target) * 10;
+    scores[4] = Math.min(10, achRate);
+
+    let mHtml = '';
+    const labels = ['流動性得分', '安全性得分', '獲利性得分', '保障度得分', '65歲退休達成率'];
+    labels.forEach((l, i) => {
+      let isLast = (i === 4);
+      mHtml += `<tr class="${isLast?'ach-row':''}">
+                  <td class="m-name">${l}</td>
+                  <td class="m-val">${isLast ? Math.round(achRate*10)+'%' : scores[i]+' / 10'}</td>
+                </tr>`;
+    });
+    document.getElementById('metric-table-body').innerHTML = mHtml;
+
+    radarChartObj = new Chart(document.getElementById('radarChart'), {
+      type: 'radar', data: { labels: ['流動', '安全', '獲利', '保障', '達成率'], datasets: [{ data: scores, backgroundColor: 'rgba(212,175,55,0.4)', borderColor: '#d4af37', pointRadius: 5 }] },
+      options: { responsive: true, maintainAspectRatio: false, scales: { r: { suggestedMin:0, suggestedMax:10, pointLabels:{color:'#fff', font:{size:14, weight:'bold'}}, ticks:{display:true, stepSize:2, color:'#64ffda', backdropColor:'transparent', callback: v=>(v*10)+'%'} } }, plugins:{legend:{display:false}} }
+    });
+
+    // 清單渲染
+    let pHtml = '';
+    data.policies.forEach(p => {
+      pHtml += `<tr>
+                  <td><div class="p-dot" style="background:${p._color}"></div>${p.name}</td>
+                  <td class="p-money">$${Math.round(p._at65).toLocaleString()}</td>
+                </tr>`;
+    });
+    document.getElementById('policy-list-body').innerHTML = pHtml;
+  }
+</script>
+</body>
+</html>
