@@ -3,186 +3,514 @@
 <head>
   <base target="_top">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;500;700&display=swap" rel="stylesheet">
-  
   <style>
-    body { background-color: #0a192f; color: #e6f1ff; font-family: 'Noto Sans TC', sans-serif; padding: 15px; margin: 0; }
-    .dashboard-container { width: 100%; max-width: 1100px; background: #112240; border-radius: 16px; padding: 25px; margin: 10px auto; border: 1px solid #233554; box-shadow: 0 10px 40px rgba(0,0,0,0.6); }
+    body { background-color: #0a192f; color: #e6f1ff; font-family: 'Noto Sans TC', sans-serif; padding: 10px; margin: 0; }
+    .dashboard-container { width: 100%; max-width: 1150px; background: #112240; border-radius: 16px; padding: 15px; margin: 5px auto; border: 1px solid #233554; box-shadow: 0 10px 40px rgba(0,0,0,0.6); }
+    .header { text-align: center; border-bottom: 1px solid #233554; padding-bottom: 8px; margin-bottom: 10px; }
+    h1 { color: #64ffda; font-size: 22px; margin: 0; }
+    .client-info-bar { margin: 5px 0; display: flex; justify-content: center; gap: 15px; font-size: 13px; color: #8892b0; }
+    .info-item { background: rgba(100, 255, 218, 0.05); padding: 2px 12px; border-radius: 20px; border: 1px solid rgba(100, 255, 218, 0.1); }
+    .highlight { color: #64ffda; font-weight: bold; }
+    .control-panel { display: grid; grid-template-columns: 12% 13% 13% 20% 20% 18%; gap: 8px; background: rgba(10, 25, 47, 0.5); padding: 12px; border-radius: 12px; border: 1px solid #233554; align-items: end; }
+    .input-label { font-size: 11px; color: #8892b0; margin-bottom: 4px; display: block; white-space: nowrap; }
+    .input-field { background: #0a192f; border: 1px solid #64ffda; color: #64ffda; padding: 6px; border-radius: 4px; font-size: 13px; font-weight: bold; text-align: right; width: 100%; box-sizing: border-box; }
+    .summary-grid { display: table; width: 100%; border-spacing: 10px 0; margin: 15px 0; table-layout: fixed; }
+    .summary-item { display: table-cell; background: rgba(10, 25, 47, 0.6); padding: 12px; border-radius: 10px; text-align: center; border: 1px solid #233554; vertical-align: middle; }
+    .sum-value { display: block; font-size: 20px; font-weight: bold; color: #64ffda; font-family: monospace; }
+    .main-layout { display: table; width: 100%; border-spacing: 15px 0; table-layout: fixed; }
+    .layout-cell { display: table-cell; background: #0f1e36; border-radius: 14px; padding: 15px; border: 1px solid #233554; vertical-align: top; width: 50%; }
+    .progress-box { margin: 5px 0; background: #0a192f; border-radius: 10px; padding: 10px; border: 1px solid #233554; }
+    .progress-bar-fill { height: 10px; border-radius: 5px; transition: width 0.8s ease-in-out; }
+    .advice-section { margin-top: 15px; background: rgba(10, 25, 47, 0.8); border: 2px solid #64ffda; border-radius: 12px; padding: 15px; position: relative; }
+    .launch-btn { position: absolute; right: 15px; top: 15px; background: #118ab2; color: #fff; border: none; padding: 8px 15px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.3); transition: background 0.3s; }
+    .launch-btn:hover { background: #06d6a0; }
+    .p-table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-top: 5px; }
+    .p-table th { color: #8892b0; font-size: 11px; text-align: left; padding: 5px; border-bottom: 1px solid #233554; }
+    .p-table td { padding: 8px 5px; font-size: 13px; border-bottom: 1px solid #233554; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .metric-value { text-align: right; font-weight: bold; color: #64ffda; font-family: monospace; }
     
-    .header { text-align: center; border-bottom: 2px solid #64ffda; padding-bottom: 20px; margin-bottom: 25px; }
-    h1 { color: #64ffda; font-size: 26px; margin: 0; }
-    
-    .control-panel { display: flex; justify-content: center; gap: 15px; margin-top: 15px; align-items: center; }
-    .input-field { background: #0a192f; border: 1px solid #64ffda; color: #64ffda; padding: 10px; border-radius: 6px; width: 160px; text-align: right; font-size: 18px; font-weight: bold; }
-    .btn-update { background: #118ab2; color: white; border: none; padding: 10px 25px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 16px; }
-
-    /* 核心數據看板：總額與缺口數據恢復 */
-    .summary-grid { display: table; width: 100%; border-spacing: 15px 0; margin-bottom: 30px; table-layout: fixed; }
-    .summary-item { display: table-cell; background: rgba(10, 25, 47, 0.6); padding: 20px; border-radius: 12px; text-align: center; border: 1px solid #233554; }
-    .sum-label { display: block; font-size: 14px; color: #8892b0; margin-bottom: 8px; }
-    .sum-value { display: block; font-size: 24px; font-weight: bold; color: #64ffda; font-family: monospace; }
-    .gap-danger { color: #ef476f !important; }
-
-    /* 左右圖表：物理隔離 50/50 分離 */
-    .main-layout { display: table; width: 100%; border-spacing: 20px 0; table-layout: fixed; }
-    .layout-cell { display: table-cell; background: #0f1e36; border-radius: 14px; padding: 20px; border: 1px solid #233554; vertical-align: top; width: 50%; }
-    .chart-label { color: #ffffff; font-weight: bold; text-align: center; margin-bottom: 20px; font-size: 18px; border-left: 5px solid #64ffda; padding-left: 10px; }
-
-    /* 得分指標：強制一列一列，決不接續 */
-    .m-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-    .m-table tr { border-bottom: 1px solid #233554; }
-    .m-table td { padding: 15px 5px; font-size: 15px; }
-    .m-name { color: #8892b0; text-align: left; }
-    .m-val { color: #64ffda; font-weight: bold; text-align: right; }
-    .ach-row { background: rgba(212, 175, 55, 0.2); border-left: 4px solid #ffd166; }
-    .ach-row td { color: #ffd166 !important; font-size: 18px !important; }
-
-    /* 清單隔離：強制每一列獨立排好 */
-    .policy-section { width: 100%; margin-top: 30px; background: #0a192f; border: 1px solid #233554; border-radius: 12px; padding: 25px; box-sizing: border-box; }
-    .p-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-    .p-table tr { border-bottom: 1px solid #233554; }
-    .p-table td { padding: 18px 10px; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .p-dot { width: 14px; height: 14px; border-radius: 4px; display: inline-block; margin-right: 15px; vertical-align: middle; }
-    .p-money { text-align: right; font-weight: bold; color: #64ffda; font-family: monospace; font-size: 20px; }
+    #sim-modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.9); z-index: 9999; overflow-y: auto; backdrop-filter: blur(8px); }
+    .sim-modal-content { position: relative; width: 95%; max-width: 1100px; margin: 30px auto; background: #112240; border: 1px solid #64ffda; border-radius: 16px; padding: 25px; box-shadow: 0 20px 50px rgba(0,0,0,0.8); animation: slideDown 0.4s ease-out; }
+    @keyframes slideDown { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    .sim-close-btn { position: absolute; top: 20px; right: 25px; background: #ef476f; color: #fff; padding: 5px 15px; border-radius: 20px; font-size: 14px; font-weight: bold; cursor: pointer; border: 1px solid #ef476f; }
+    .sim-header { text-align: center; border-bottom: 1px solid #233554; padding-bottom: 15px; margin-bottom: 20px; }
+    .sim-main-grid { display: grid; grid-template-columns: 280px 1fr; gap: 20px; }
+    .sim-left-panel { background: rgba(10, 25, 47, 0.6); padding: 15px; border-radius: 12px; border: 1px solid #233554; }
+    .sim-input-group { margin-bottom: 15px; }
+    .sim-input-group label { display: block; color: #8892b0; font-size: 12px; margin-bottom: 5px; }
+    .sim-input-group input, .sim-input-group select { width: 100%; background: #0a192f; border: 1px solid #64ffda; color: #64ffda; padding: 8px; border-radius: 4px; font-weight: bold; font-size: 14px; box-sizing: border-box; }
+    .sim-divider { border-top: 1px solid #233554; margin: 15px 0; padding-top: 10px; color: #64ffda; font-size: 12px; font-weight: bold; }
+    .sim-right-panel { display: flex; flex-direction: column; gap: 15px; }
+    .sim-chart-box { background: #0a192f; border: 1px solid #233554; border-radius: 12px; padding: 10px; height: 350px; flex-shrink: 0; }
+    .sim-ai-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+    .sim-stat-card { background: #172a45; padding: 15px; border-radius: 8px; border: 1px solid #233554; text-align: center; }
+    .sim-stat-val { font-size: 24px; font-weight: bold; color: #fff; margin: 5px 0; }
+    .ai-card { background: rgba(100, 255, 218, 0.1); border: 1px solid #64ffda; grid-column: span 2; text-align: left; display: flex; align-items: center; justify-content: space-between; padding: 15px; border-radius: 8px; }
+    .ai-suggestion-text { font-size: 14px; color: #e6f1ff; line-height: 1.5; }
+    .apply-btn { background: #64ffda; color: #0a192f; border: none; padding: 8px 15px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 12px; white-space: nowrap; margin-left: 10px;}
+    @media (max-width: 900px) { .sim-main-grid, .sim-ai-grid { grid-template-columns: 1fr; } .ai-card { flex-direction: column; align-items: start; gap: 10px; } .control-panel { grid-template-columns: repeat(3, 1fr); } .main-layout, .layout-cell { display: block; width: 100%; } .launch-btn { position: static; width: 100%; margin-top: 10px; } }
   </style>
 </head>
 <body>
 
 <div class="dashboard-container">
   <div class="header">
-    <h1 id="mainTitle">林佑恩 退休精算診斷系統</h1>
+    <h1>退休精算診斷戰情室 V88.00 (勞退進階版)</h1>
+    <div class="client-info-bar">
+      <div class="info-item">客戶：<span class="highlight" id="show-name">--</span></div>
+      <div class="info-item">現齡：<span class="highlight" id="show-age">--</span></div>
+      <div class="info-item">退休倒數：<span class="highlight" id="show-years">--</span> 年</div>
+    </div>
     <div class="control-panel">
-      <span style="color:#ffffff">退休期許值 (TWD):</span>
-      <input type="number" id="targetGoal" class="input-field" value="13000000">
-      <button class="btn-update" onclick="updateDashboard()">重新計算分析</button>
+      <div><span class="input-label">退休年齡</span><input type="number" id="retireAge" class="input-field" value="65"></div>
+      <div><span class="input-label">累積報酬(%)</span><input type="number" id="accRate" class="input-field" value="5.0" step="0.1"></div>
+      <div><span class="input-label">提領生息(%)</span><input type="number" id="wdrRate" class="input-field" value="1.0" step="0.1"></div>
+      <div><span class="input-label">目標金額 (TWD)</span><input type="number" id="targetGoal" class="input-field" value="13000000"></div>
+      <div><span class="input-label">月提領額 (TWD)</span><input type="number" id="expectPension" class="input-field" value="50000"></div>
+      <div><span class="input-label">年收入 (診斷)</span><input type="number" id="annualIncome" class="input-field" value="678132"></div>
     </div>
   </div>
 
   <div class="summary-grid">
     <div class="summary-item">
-      <span class="sum-label">65 歲預估資產總額</span>
+      <span><span class="retire-label">--</span> 歲預計總資產</span>
       <span id="stat-total" class="sum-value">$0</span>
+      <div id="stat-pension-3" style="font-size:11px; color:#64ffda; margin-top:4px;">--</div>
     </div>
     <div class="summary-item">
-      <span class="sum-label">資金缺口 / 餘裕</span>
-      <span id="stat-gap" class="sum-value">$0</span>
+      <span>達成缺口需月存額</span>
+      <span id="stat-monthly-save" class="sum-value" style="color:#ef476f">$0</span>
+      <div id="stat-longevity" style="font-size:11px; color:#ffd166; margin-top:4px;">可支領至：--</div>
     </div>
   </div>
 
   <div class="main-layout">
     <div class="layout-cell">
-      <div class="chart-label">資產累積成長趨勢</div>
-      <div style="height: 380px;"><canvas id="assetChart"></canvas></div>
+      <div style="font-weight:bold; margin-bottom:10px; font-size:13px;">資產累積趨勢</div>
+      <div style="height: 360px;"><canvas id="assetChart"></canvas></div>
     </div>
     <div class="layout-cell">
-      <div class="chart-label">體質評分與 65 歲達成率</div>
-      <div style="height: 280px;"><canvas id="radarChart"></canvas></div>
-      <table class="m-table" id="metric-table-body"></table>
+      <div style="font-weight:bold; margin-bottom:10px; font-size:13px;">退休體質五維度</div>
+      <div class="progress-box">
+        <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:4px;"><span>既有達成率</span><span id="p1-val">0%</span></div>
+        <div style="background:#233554; height:10px; border-radius:5px; overflow:hidden;"><div id="p1-bar" class="progress-bar-fill" style="width:0%; background:#118ab2"></div></div>
+      </div>
+      <div style="height: 230px;"><canvas id="radarChart"></canvas></div>
+      <table class="p-table" style="margin-top:10px;"><tbody id="metric-body"></tbody></table>
     </div>
   </div>
+
+  <div class="advice-section">
+    <button class="launch-btn" onclick="toggleSim(true)">🚀 啟動 AI 退休模擬器</button>
+    <div id="advice-content"></div>
+  </div>
   
-  <div class="policy-section">
-    <div style="color:#64ffda; font-weight:bold; margin-bottom:20px; border-left:5px solid #64ffda; padding-left:12px; font-size:18px;">
-      個人保單 65 歲預估價值明細
-    </div>
-    <table class="p-table" id="policy-list-body"></table>
+  <div style="margin-top:15px; background:#0a192f; border:1px solid #233554; border-radius:12px; padding:20px;">
+    <div style="color:#64ffda; font-weight:bold; margin-bottom:8px; font-size:13px;">保單清單</div>
+    <table class="p-table">
+      <thead><tr><th style="width:20%">保單號碼</th><th style="width:50%">保單名稱</th><th style="width:30%; text-align:right"><span class="retire-label">--</span>歲價值</th></tr></thead>
+      <tbody id="policy-body"></tbody>
+    </table>
   </div>
 </div>
 
-<script>
-  let globalData = null;
-  let assetChart = null;
-  let radarChartObj = null;
-  const COLORS = ['#64ffda', '#118ab2', '#ffd166', '#ef476f', '#06d6a0', '#7209b7'];
+<div id="sim-modal-overlay">
+  <div class="sim-modal-content">
+    <div class="sim-close-btn" onclick="toggleSim(false)">❌ 返回戰情室</div>
+    <div class="sim-header">
+      <h2 style="color:#64ffda; margin:0;">🤖 退休現金流壓力測試 V88.00</h2>
+      <div style="color:#8892b0; font-size:13px;">三層式資金堆疊 | AI 最佳解建議 (20/80 Rule)</div>
+    </div>
 
-  window.onload = function() {
-    google.script.run.withSuccessHandler(data => { globalData = data; renderAll(data); }).getPortfolioData();
+    <div class="sim-main-grid">
+      <div class="sim-left-panel">
+        <div class="sim-divider" style="margin-top:0;">1. 勞保勞退設定 (基礎層)</div>
+        <div class="sim-input-group"><label>勞保投保薪資 (Max 45,800)</label><input type="number" id="avgInsSalary" value="45800" oninput="runSimulation()"></div>
+        <div class="sim-input-group"><label>勞保年資</label><input type="number" id="yearsLI" value="25" oninput="runSimulation()"></div>
+        <div class="sim-input-group"><label>勞退目前累積</label><input type="number" id="currentLP" value="1500000" oninput="runSimulation()"></div>
+        <div class="sim-input-group"><label>勞退提撥月薪</label><input type="number" id="currentSalary" value="65000" oninput="runSimulation()"></div>
+        
+        <div class="sim-input-group" style="display:flex; justify-content:space-between; align-items:center;">
+            <label style="margin:0">勞退自提 6% ?</label>
+            <input type="checkbox" id="hasSelfContrib" checked onchange="runSimulation()" style="width:20px; height:20px;">
+        </div>
+        <div class="sim-input-group">
+            <label>勞退預期績效 (%)</label>
+            <input type="number" id="lpRate" value="4.0" step="0.1" oninput="runSimulation()">
+        </div>
+
+        <div class="sim-divider">2. 自存退休金 (風險層)</div>
+        <div class="sim-input-group"><label>自存目標本金</label><input type="number" id="simCapital" value="13000000" oninput="runSimulation()"></div>
+        <div class="sim-input-group"><label>提領期報酬率 (μ %)</label><input type="number" id="simMu" value="1.0" step="0.1" oninput="runSimulation()"></div>
+        
+        <div class="sim-divider" style="color:#ef476f">3. 提領目標</div>
+        <div class="sim-input-group"><label style="color:#ef476f">退休後每月總花費</label><input type="number" id="monthlySpend" value="50000" oninput="runSimulation()" style="border-color:#ef476f; color:#ef476f"></div>
+        
+        <input type="hidden" id="simAgeNow" value="57"><input type="hidden" id="simAgeRetire" value="65">
+        <button onclick="runSimulation()" style="background:#64ffda; color:#0a192f; border:none; padding:10px; width:100%; font-weight:bold; margin-top:10px; border-radius:4px; cursor:pointer;">🔄 重新運算</button>
+      </div>
+
+      <div class="sim-right-panel">
+        <div class="sim-chart-box"><canvas id="mcChart"></canvas></div>
+        <div class="sim-ai-grid">
+          <div class="sim-stat-card"><div style="font-size:12px; color:#8892b0;">勞保+勞退 (84歲前)</div><div id="res-base-income" style="font-size:20px; font-weight:bold; color:#ffd166; margin:5px 0;">$0</div><div style="font-size:11px; color:#8892b0;">每月固定領</div></div>
+          <div class="sim-stat-card"><div style="font-size:12px; color:#8892b0;">存續至 100 歲成功率</div><div id="res-success-rate" style="font-size:20px; font-weight:bold; color:#fff; margin:5px 0;">--%</div><div id="res-success-desc" style="font-size:11px; color:#8892b0;">--</div></div>
+          <div class="ai-card">
+            <div><div style="font-weight:bold; color:#64ffda; font-size:13px; margin-bottom:3px;">🤖 AI 最佳解建議 (80/20 Rule)</div><div id="ai-suggestion-text" style="font-size:13px; color:#e6f1ff;">分析中...</div></div>
+            <button id="btn-apply-opt" onclick="applyOptimal()" style="display:none; background:#64ffda; color:#0a192f; border:none; padding:5px 10px; border-radius:4px; font-weight:bold; cursor:pointer; font-size:12px; margin-left:10px;">套用建議</button>
+          </div>
+        </div>
+        <button onclick="saveToSheet()" style="background:#118ab2; padding:10px; width:100%; font-weight:bold; color:#fff; border:none; border-radius:4px; cursor:pointer;">💾 儲存測試結果</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  /* =========================================
+     V88.00 Script (FV Logic & New Params)
+     ========================================= */
+  let globalData = null, assetChart = null, radarChartObj = null, simChartInstance = null;
+  const COLORS = ['#64ffda', '#118ab2', '#ffd166', '#ef476f', '#06d6a0', '#7209b7'];
+  
+  // 用於儲存 AI 建議值的快取變數
+  let optimalSafeCache = 0; // 80% 成功率建議值
+  let optimalRiskCache = 0; // 50% 成功率建議值
+
+  // 1. 戰情室圖表輔助插件 (維持 V71/V83 原樣)
+  const vLinePlugin = {
+    id: 'vLine',
+    afterDraw: (chart) => {
+      if (globalData) {
+        const {ctx, scales: {x, y}} = chart;
+        const rAge = Number(document.getElementById('retireAge').value);
+        const yR = Math.max(0, rAge - globalData.currentAge);
+        const xPos = x.getPixelForValue(yR / 10);
+        ctx.save(); ctx.beginPath(); ctx.setLineDash([5, 5]);
+        ctx.moveTo(xPos, y.top); ctx.lineTo(xPos, y.bottom);
+        ctx.lineWidth = 1.5; ctx.strokeStyle = '#ffffff'; ctx.stroke();
+        ctx.fillStyle = '#ffffff'; ctx.font = '10px Noto Sans TC';
+        ctx.fillText('退休年度', xPos + 5, y.top + 15); ctx.restore();
+      }
+    }
   };
 
-  function updateDashboard() { if(globalData) renderAll(globalData); }
+  // 2. 初始化 (維持 V83 原樣)
+  window.onload = function() {
+    ['targetGoal', 'annualIncome', 'accRate', 'wdrRate', 'expectPension', 'retireAge'].forEach(id => {
+      document.getElementById(id).addEventListener('input', () => { if(globalData) renderAll(globalData); });
+    });
+    google.script.run.withSuccessHandler(data => { 
+      globalData = data; 
+      document.getElementById('show-name').innerText = data.clientName;
+      document.getElementById('show-age').innerText = data.currentAge + " 歲";
+      
+      // 同步模擬器預設值
+      document.getElementById('simAgeNow').value = data.currentAge;
+      document.getElementById('simAgeRetire').value = document.getElementById('retireAge').value;
+      document.getElementById('simCapital').value = document.getElementById('targetGoal').value;
+      document.getElementById('monthlySpend').value = document.getElementById('expectPension').value;
+      document.getElementById('simMu').value = document.getElementById('wdrRate').value;
+      
+      renderAll(data); 
+    }).getPortfolioData();
+  };
 
+  // 3. 戰情室渲染邏輯 (維持 V83 原樣)
   function renderAll(data) {
-    if(!data || data.error) { alert(data.error); return; }
+    const rAge = Number(document.getElementById('retireAge').value) || 65;
     const target = Number(document.getElementById('targetGoal').value) || 1;
-    document.getElementById('mainTitle').innerText = `${data.clientName} (現年 ${data.currentAge} 歲) 精算診斷`;
-    
-    let total65 = 0;
-    const yRetire = data.yearsToRetire;
+    const aRate = Number(document.getElementById('accRate').value) / 100;
+    const wRate = Number(document.getElementById('wdrRate').value) / 100;
+    const expectPMT = Number(document.getElementById('expectPension').value) || 0;
+    const income = Number(document.getElementById('annualIncome').value) || 678132;
+    const yR = Math.max(0, rAge - data.currentAge);
 
-    data.policies.forEach((p, idx) => {
-      let v65 = 0;
-      if (yRetire <= 1) v65 = p.values[0];
-      else if (yRetire <= 10) v65 = p.values[0] + (p.values[1]-p.values[0])*((yRetire-1)/9);
+    document.getElementById('show-years').innerText = yR;
+    document.querySelectorAll('.retire-label').forEach(el => el.innerText = rAge);
+
+    let totalR = 0, sumS = 0, sumY = 0, totalProt = 0, weightedLiq = 0;
+    data.policies.forEach((p) => {
+      const v = p.values;
+      let valAtRetire = 0;
+      if (yR <= 1) valAtRetire = v[0];
+      else if (yR <= 10) valAtRetire = v[0] + (v[1]-v[0])*((yR-1)/9);
       else {
-        let bi = Math.min(4, Math.floor(yRetire/10));
-        let r = (yRetire % 10) / 10;
-        v65 = p.values[bi] + (p.values[bi+1]-p.values[bi]) * r;
+        const decade = Math.floor(yR/10);
+        const idx1 = Math.min(4, decade);
+        const idx2 = Math.min(5, decade+1);
+        valAtRetire = v[idx1] + (v[idx2]-v[idx1])*((yR%10)/10);
       }
-      p._v65 = v65 * (p.currency === 'USD' ? 30 : 1);
-      p._color = COLORS[idx % COLORS.length];
-      total65 += p._at65 = p._v65;
+      p._vRetire = valAtRetire * (p.currency === 'USD' ? 30 : 1);
+      totalR += p._vRetire; 
+      sumS += (Number(p.safetyScore) || 8); 
+      sumY += (Number(p.yieldScore) || 5);
+      totalProt += (p.protectionValue * (p.currency === 'USD' ? 30 : 1));
+      weightedLiq += (Math.min(1, p.paidYears / p.totalTerms) * p._vRetire);
     });
 
-    // 數據看板更新
-    const gap = total65 - target;
-    document.getElementById('stat-total').innerText = `$${Math.round(total65).toLocaleString()}`;
-    const gapEl = document.getElementById('stat-gap');
-    gapEl.innerText = (gap >= 0 ? '+' : '') + `$${Math.round(gap).toLocaleString()}`;
-    gapEl.className = 'sum-value ' + (gap < 0 ? 'gap-danger' : '');
+    const mAccRate = aRate / 12;
+    const gap = Math.max(0, target - totalR);
+    let monthlySave = 0;
+    if (gap > 0 && yR > 0) {
+       if (mAccRate <= 0) monthlySave = gap / (yR * 12);
+       else monthlySave = gap / ((Math.pow(1 + mAccRate, yR * 12) - 1) / mAccRate);
+    }
+    
+    const mWdrRate = wRate / 12;
+    let lonText = "--";
+    const simWRate = Math.max(0.00001, mWdrRate); 
+    if (expectPMT <= target * simWRate) lonText = "永續領取";
+    else {
+      const denom = expectPMT - (target * simWRate);
+      if (denom > 0) {
+        let n = Math.log(expectPMT / denom) / Math.log(simWRate + 1);
+        lonText = Math.floor(rAge + (n / 12)) + " 歲";
+      } else { lonText = (rAge + 1) + " 歲 (立即耗盡)"; }
+    }
 
-    // 左圖趨勢
+    document.getElementById('stat-total').innerText = `$${Math.round(totalR).toLocaleString()}`;
+    document.getElementById('stat-pension-3').innerText = `${(wRate*100).toFixed(1)}% 生息：$${Math.round((target * wRate)/12).toLocaleString()}/月`;
+    document.getElementById('stat-monthly-save').innerText = `$${Math.round(monthlySave).toLocaleString()}`;
+    document.getElementById('stat-longevity').innerText = "可支領至：" + lonText;
+    document.getElementById('p1-val').innerText = Math.round((totalR/target)*100) + '%';
+    document.getElementById('p1-bar').style.width = Math.min(100, (totalR/target)*100) + '%';
+
+    renderAssetChart(data, target, totalR, yR, aRate);
+    const avgS = sumS / Math.max(1, data.policies.length);
+    const avgY = sumY / Math.max(1, data.policies.length);
+    const achSc = Math.min(10, (totalR/target)*10);
+    const protSc = Math.min(10, (totalProt / (income * 10)) * 10);
+    const liqSc = (weightedLiq / (totalR || 1)) * 10;
+    renderRadarChart(avgS, avgY, achSc, protSc, liqSc);
+
+    document.getElementById('metric-body').innerHTML = `
+      <tr><td>🛡️ 安全性得分</td><td class="metric-value">${Math.round(avgS*10)/10} / 10</td></tr>
+      <tr><td>📈 獲利性得分</td><td class="metric-value">${Math.round(avgY*10)/10} / 10</td></tr>
+      <tr><td>☂️ 家庭保障度</td><td class="metric-value">${Math.round(protSc*10)/10} / 10</td></tr>
+      <tr><td>💧 變現流動性</td><td class="metric-value">${Math.round(liqSc*10)/10} / 10</td></tr>
+    `;
+
+    document.getElementById('advice-content').innerHTML = `<div class="advice-card" style="border-left:6px solid #64ffda">
+      <h4>💡 CFP 專業精算結論</h4>
+      <p>目標本金 <b>$${target.toLocaleString()}</b> 下每月領 <b>$${expectPMT.toLocaleString()}</b> 可支領至 <b>${lonText}</b>。目前缺口 <b>$${Math.round(gap).toLocaleString()}</b>，建議每月儲存 <b>$${Math.round(monthlySave).toLocaleString()}</b>。</p>
+    </div>`;
+
+    let tH = "";
+    data.policies.forEach((p) => { 
+      tH += `<tr><td>${p.policyNo||'未編號'}</td><td>${p.name}</td><td style="text-align:right; font-weight:bold; color:#64ffda">$${Math.round(p._vRetire).toLocaleString()}</td></tr>`; 
+    });
+    document.getElementById('policy-body').innerHTML = tH;
+  }
+
+  // [修正 1] 累積資產變化曲線：退休後扣除支出 (Decumulation)
+  function renderAssetChart(data, target, totalR, yR, rate) {
     if (assetChart) assetChart.destroy();
-    let cumulative = new Array(7).fill(0);
+    const annualSpend = Number(document.getElementById('expectPension').value) * 12;
+    const getComp = (r) => { 
+        let dataPoints = [];
+        let presentVal = totalR / Math.pow(1 + r, yR);
+        for (let t = 0; t <= 60; t += 10) {
+            let val = 0;
+            if (t <= yR) {
+                // 累積期
+                val = presentVal * Math.pow(1 + r, t);
+            } else {
+                // 提領期：逐年扣除年支出
+                let postRetireYears = t - yR;
+                let balance = totalR;
+                for(let k=0; k<postRetireYears; k++){
+                    balance = balance * (1 + r) - annualSpend;
+                    if(balance < 0) balance = 0;
+                }
+                val = balance;
+            }
+            dataPoints.push(val);
+        }
+        return dataPoints;
+    };
+    let cum = new Array(7).fill(0);
     let ds = data.policies.map((p, i) => {
-      let twd = [0, ...p.values].map(v => v * (p.currency==='USD'?30:1));
-      let lyr = twd.map((v, idx) => { cumulative[idx] += v; return cumulative[idx]; });
-      return { label: p.name, data: lyr, fill: i===0?'origin':'-1', backgroundColor: p._color+'AA', borderColor: p._color, tension:0.3, pointRadius:0 };
+      let lyr = [0, ...p.values].map((v, idx) => { cum[idx] += v*(p.currency==='USD'?30:1); return cum[idx]; });
+      return { label: p.name, data: lyr, fill: 'origin', backgroundColor: COLORS[i%6]+'cc', pointRadius: 0 };
     });
-    ds.push({ label: '目標紅線', data: Array(7).fill(target), borderColor: '#ef476f', borderDash: [10, 5], fill: false, borderWidth: 3 });
+    ds.push({ label: '退休目標', data: Array(7).fill(target), borderColor: '#ff4d4d', borderWidth: 4, fill: false, pointRadius: 0, order: -100 });
+    ds.push({ label: '累積預測 (含提領)', data: getComp(rate), borderColor: '#ffd166', borderWidth: 2, fill: false, pointRadius: 0 });
+    assetChart = new Chart(document.getElementById('assetChart'), { type: 'line', data: { labels: ['0年','10年','20年','30年','40年','50年','60年'], datasets: ds }, plugins: [vLinePlugin], options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#fff', boxWidth: 10 } } }, scales: { y: { beginAtZero: true, ticks: { color: '#fff', font: { size: 10 } }, grid: { color: '#233554' }, suggestedMax: target * 1.1 }, x: { ticks: { color: '#fff', font: { size: 10 } } } } } });
+  }
 
-    assetChart = new Chart(document.getElementById('assetChart'), {
-      type: 'line', data: { labels: ['0','10','20','30','40','50','60'], datasets: ds },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { annotation: { annotations: { line1: { type:'line', xMin: yRetire/10, xMax: yRetire/10, borderColor:'#fff', borderWidth:3, borderDash:[6,6], label:{display:true, content:'65歲退休'} } } }, legend: {labels:{color:'#fff'}} }, scales: { y:{grid:{color:'#233554'}, ticks:{color:'#fff'}}, x:{grid:{display:false}, ticks:{color:'#fff'}} } }
-    });
-
-    // 右圖雷達 & 指標
+  function renderRadarChart(s, y, a, p, l) {
     if (radarChartObj) radarChartObj.destroy();
-    let scores = [0,0,0,0,0];
-    data.policies.forEach(p => {
-      scores[0]=Math.max(scores[0],p.scores.liquidity);
-      scores[1]=Math.max(scores[1],p.scores.safety);
-      scores[2]=Math.max(scores[2],p.scores.yield);
-      scores[3]=Math.max(scores[3],p.scores.protection);
-    });
-    let achRate = (total65 / target) * 10;
-    scores[4] = Math.min(10, achRate);
+    radarChartObj = new Chart(document.getElementById('radarChart'), { type: 'radar', data: { labels: ['安全性','獲利性','達成率','保障度','流動性'], datasets: [{ data: [s||0, y||0, a||0, p||0, l||0], backgroundColor: 'rgba(100,255,218,0.3)', borderColor: '#64ffda', borderWidth: 2 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { r: { suggestedMin: 0, suggestedMax: 10, pointLabels: { color: '#fff', font: { size: 10 } }, grid: { color: '#233554' }, ticks: { display: false } } }, plugins: { legend: { display: false } } } });
+  }
 
-    let mHtml = '';
-    const labels = ['流動性得分', '安全性得分', '獲利性得分', '保障度得分', '65歲退休達成率'];
-    labels.forEach((l, i) => {
-      let isLast = (i === 4);
-      mHtml += `<tr class="${isLast?'ach-row':''}">
-                  <td class="m-name">${l}</td>
-                  <td class="m-val">${isLast ? Math.round(achRate*10)+'%' : scores[i]+' / 10'}</td>
-                </tr>`;
-    });
-    document.getElementById('metric-table-body').innerHTML = mHtml;
+  function toggleSim(show) {
+    const overlay = document.getElementById('sim-modal-overlay');
+    overlay.style.display = show ? 'block' : 'none';
+    if (show) runSimulation();
+  }
 
-    radarChartObj = new Chart(document.getElementById('radarChart'), {
-      type: 'radar', data: { labels: ['流動', '安全', '獲利', '保障', '達成率'], datasets: [{ data: scores, backgroundColor: 'rgba(212,175,55,0.4)', borderColor: '#d4af37', pointRadius: 5 }] },
-      options: { responsive: true, maintainAspectRatio: false, scales: { r: { suggestedMin:0, suggestedMax:10, pointLabels:{color:'#fff', font:{size:14, weight:'bold'}}, ticks:{display:true, stepSize:2, color:'#64ffda', backdropColor:'transparent', callback: v=>(v*10)+'%'} } }, plugins:{legend:{display:false}} }
-    });
+  function randn_bm() {
+    let u = 0, v = 0;
+    while(u === 0) u = Math.random();
+    while(v === 0) v = Math.random();
+    return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+  }
 
-    // 清單渲染
-    let pHtml = '';
-    data.policies.forEach(p => {
-      pHtml += `<tr>
-                  <td><div class="p-dot" style="background:${p._color}"></div>${p.name}</td>
-                  <td class="p-money">$${Math.round(p._at65).toLocaleString()}</td>
-                </tr>`;
+  // [V88.00] 運算核心：更新勞退 (FV) 邏輯 & 輸入下限保護
+  function runSimulation() {
+    const ageNow = Number(document.getElementById('simAgeNow').value) || 57;
+    let ageRetire = Number(document.getElementById('simAgeRetire').value) || 65;
+    if (ageRetire > 70) { ageRetire = 70; }
+    
+    const yearsLI = Number(document.getElementById('yearsLI').value);
+    const avgInsSalary = Math.min(Number(document.getElementById('avgInsSalary').value), 45800);
+    const currentSalary = Number(document.getElementById('currentSalary').value);
+    const lpBalance = Number(document.getElementById('currentLP').value);
+    const capital = Number(document.getElementById('simCapital').value);
+    const mu = Number(document.getElementById('simMu').value) / 100;
+    const sigma = 0.07;
+    
+    // [UI] 讀取新欄位
+    const hasSelf = document.getElementById('hasSelfContrib').checked;
+    const lpRate = Number(document.getElementById('lpRate').value) / 100;
+    
+    // [修正 2] 提領金額不能低於下限：僅運算使用，不覆寫輸入框
+    let inputSpend = Number(document.getElementById('monthlySpend').value);
+
+    // 1. 勞保
+    const diff = ageRetire - 65;
+    let factor = Math.max(0.8, Math.min(1.2, 1 + (diff * 0.04)));
+    const liMonth = Math.round(avgInsSalary * yearsLI * 0.0155 * factor);
+
+    // 2. 勞退 (DC) - FV 公式應用
+    const yearsToRetire = Math.max(0, ageRetire - ageNow);
+    
+    // 2.1 提撥率判斷
+    const contribRate = hasSelf ? 0.12 : 0.06;
+    const lpContrib = Math.min(currentSalary, 150000) * contribRate;
+    
+    // 2.2 累積期 (FV Formula)
+    // 存量(Balance)複利 + 流量(Contribution)年金終值
+    let lpFuture = 0;
+    if (lpRate === 0) {
+         lpFuture = lpBalance + (lpContrib * 12 * yearsToRetire);
+    } else {
+         lpFuture = lpBalance * Math.pow(1 + lpRate, yearsToRetire) + 
+                    (lpContrib * 12 * ((Math.pow(1 + lpRate, yearsToRetire) - 1) / lpRate));
+    }
+    
+    const termYears = 85 - ageRetire;
+    let lpMonth = 0;
+    if (termYears > 0) {
+      // 提領期利率：使用面板設定的 mu (提領期報酬率)
+      const rMonth = mu / 12; 
+      const nMonth = termYears * 12;
+      if (rMonth === 0) lpMonth = lpFuture / nMonth;
+      else lpMonth = (lpFuture * rMonth) / (1 - Math.pow(1 + rMonth, -nMonth));
+    }
+    
+    const baseIncome = liMonth + Math.round(lpMonth);
+    document.getElementById('res-base-income').innerText = `$${baseIncome.toLocaleString()}`;
+
+    // 3. 有效支出地板 (Logic Floor)：運算時取 (輸入值, 基礎年金) 之大者
+    let effectiveSpend = Math.max(inputSpend, baseIncome);
+
+    // 4. 蒙地卡羅 (三層堆疊)
+    const simYears = 100 - ageRetire; 
+    let trajectories = [];
+    let successCount = 0;
+
+    for (let i = 0; i < 1000; i++) {
+      let balance = capital;
+      let path = [balance];
+      let failed = false;
+      
+      for (let y = 1; y <= simYears; y++) {
+        let age = ageRetire + y;
+        let r = mu + sigma * randn_bm();
+        balance = balance * (1 + r);
+        
+        let gap = 0;
+        // 缺口計算邏輯：使用有下限保護的 effectiveSpend
+        if (effectiveSpend > baseIncome) {
+            // 85歲前：扣除 (勞保+勞退)
+            if (age < 85) gap = effectiveSpend - baseIncome;
+            // 85歲後：扣除 (勞保) - 勞退已領完
+            else gap = effectiveSpend - liMonth;
+        } else {
+            // 若輸入低於基礎年金，85歲後可能勞保不夠，才需扣本金
+            if (age >= 85 && effectiveSpend > liMonth) gap = effectiveSpend - liMonth;
+        }
+        
+        balance -= (gap * 12);
+        if (balance < 0) { balance = 0; failed = true; }
+        path.push(balance);
+      }
+      if (!failed) successCount++;
+      trajectories.push(path);
+    }
+
+    const successRate = (successCount / 1000) * 100;
+    const rateEl = document.getElementById('res-success-rate');
+    rateEl.innerText = successRate.toFixed(1) + '%';
+    rateEl.style.color = successRate >= 80 ? '#06d6a0' : (successRate >= 50 ? '#ffd166' : '#ef476f');
+    document.getElementById('res-success-desc').innerText = successRate >= 80 ? '安全區' : (successRate >= 50 ? '警戒區' : '危險區');
+
+    // [V83.10 FIX 2]：AI 雙重機率建議 (80% / 50%)
+    // 計算邏輯：根據當前缺口與成功率，按比例逆推安全邊際
+    let currentGap = Math.max(0, effectiveSpend - baseIncome);
+    
+    // 穩健型 (80%)
+    let safeFactor = (successRate >= 80) ? (1 + (successRate-80)/100) : (successRate / 85);
+    let safeGap = currentGap * safeFactor;
+    optimalSafeCache = Math.floor(baseIncome + safeGap);
+    
+    // 積極型 (50%)
+    let riskFactor = (successRate >= 50) ? (1 + (successRate-50)/80) : (successRate / 55);
+    let riskGap = currentGap * riskFactor;
+    optimalRiskCache = Math.floor(baseIncome + riskGap);
+
+    document.getElementById('ai-suggestion-text').innerHTML = 
+      `<div style="margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; font-size:12px;">
+         <span><span style="color:#06d6a0">● 穩健(80%):</span> <span style="font-weight:bold;color:#fff">$${optimalSafeCache.toLocaleString()}</span></span>
+         <button onclick="applyVal('safe')" style="border:1px solid #06d6a0;background:none;color:#06d6a0;border-radius:3px;cursor:pointer;padding:2px 5px;">套用</button>
+       </div>
+       <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px;">
+         <span><span style="color:#ffd166">● 積極(50%):</span> <span style="font-weight:bold;color:#fff">$${optimalRiskCache.toLocaleString()}</span></span>
+         <button onclick="applyVal('risk')" style="border:1px solid #ffd166;background:none;color:#ffd166;border-radius:3px;cursor:pointer;padding:2px 5px;">套用</button>
+       </div>`;
+
+    if(typeof renderSimChart === 'function') renderSimChart(trajectories.slice(0, 50), ageRetire);
+  }
+
+  // 套用建議值輔助函數
+  function applyVal(type) {
+    let val = (type === 'safe') ? optimalSafeCache : optimalRiskCache;
+    if (val > 0) {
+      document.getElementById('monthlySpend').value = val;
+      runSimulation(); // 套用後立即運算
+    }
+  }
+
+  function renderSimChart(paths, startAge) {
+    const ctx = document.getElementById('mcChart').getContext('2d');
+    if (simChartInstance) simChartInstance.destroy();
+    const labels = Array.from({length: paths[0].length}, (_, i) => startAge + i);
+    simChartInstance = new Chart(ctx, {
+      type: 'line',
+      data: { labels: labels, datasets: paths.map(p=>({ data: p, borderColor: 'rgba(100,255,218,0.1)', borderWidth: 1, pointRadius: 0, fill: false })) },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, title: {display:true, text:'自存金資產模擬 (1000次)', color:'#8892b0'} }, scales: { x: { ticks: { color: '#8892b0' } }, y: { ticks: { color: '#8892b0' }, grid: { color: '#233554' } } } }
     });
-    document.getElementById('policy-list-body').innerHTML = pHtml;
+  }
+
+  function saveToSheet() {
+    const data = {
+      liPension: document.getElementById('res-base-income').innerText,
+      successRate: document.getElementById('res-success-rate').innerText,
+      recommendation: document.getElementById('ai-suggestion-text').innerText.replace(/<[^>]*>/g, '')
+    };
+    google.script.run.withSuccessHandler(()=>alert('✅ 測試結果已存檔')).saveSimulationData(data);
   }
 </script>
 </body>
