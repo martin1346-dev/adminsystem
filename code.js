@@ -9,7 +9,7 @@
 const MODEL_NAME = 'gemini-2.5-flash'; 
 
 // ⚠️ 請在此填入您的 API KEY
-const API_KEY = PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY') || "AIzaSyAR-TNuZwh08kj6sfZWgMxOw4mdAsv5_To";
+const API_KEY = PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY') || "";
 
 // 資料庫與資料夾 ID (已填入您的專屬 ID)
 const SHEET_ID = "1yUf_7kUA7eg4ULxk1cz1eivAzhCewKt1T-A8VV6PIek"; 
